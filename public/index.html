@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Mazzo di Carte Multiplayer - Eventi & Strumenti</title>
+  <!-- Importa Google Font -->
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset base */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: linear-gradient(135deg, #141E30, #243B55);
+      font-family: 'Montserrat', sans-serif;
+      color: #ecf0f1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-bottom: 20px;
+      font-size: 38px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+    }
+    .container, .instrument-container {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 20px;
+      width: 100%;
+      justify-content: center;
+    }
+    .area {
+      position: relative;
+      width: 280px;
+      height: 400px;
+      border-radius: 20px;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.3);
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 45px;
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+    }
+    .area .area-title {
+      position: absolute;
+      top: 10px;
+      font-weight: bold;
+      font-size: 22px;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    }
+    .deck-info {
+      position: absolute;
+      bottom: 10px;
+      font-size: 16px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    .cards-container {
+      margin-top: 50px;
+      width: 100%;
+      height: calc(100% - 50px);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-behavior: smooth;
+    }
+    .cards-container::-webkit-scrollbar {
+      height: 8px;
+    }
+    .cards-container::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+    }
+    .cards-container::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.3);
+      border-radius: 10px;
+    }
+    /* Stile per le carte (mazzo eventi e scarti pubblici) */
+    .card {
+      width: 230px;
+      height: 130px;
+      background: linear-gradient(135deg, #ffffff, #f8f8f8);
+      border: 2px solid #ccc;
+      border-radius: 15px;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      text-align: center;
+      font-size: 18px;
+      line-height: 1.2;
+      color: #333;
+      opacity: 0;
+      transition: transform 0.5s ease, opacity 0.5s ease;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 100;
+      cursor: pointer;
+    }
+    .card.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    /* Per le carte negli scarti (pubbliche) */
+    #discard .cards-container .card,
+    #instrument-discard .cards-container .card {
+      position: static;
+      transform: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      cursor: default;
+    }
+    #discard .cards-container .card.show,
+    #instrument-discard .cards-container .card.show {
+      opacity: 1;
+    }
+    /* Aree cliccabili */
+    #deck, #instrument-deck {
+      cursor: pointer;
+    }
+    #deck:hover, #instrument-deck:hover {
+      transform: scale(1.05);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.6);
+    }
+    /* Le aree degli scarti non sono cliccabili */
+    #discard, #instrument-discard {
+      cursor: default;
+    }
+    /* Nuova struttura per la mano strumenti: contiene un titolo e un contenitore interno scrollabile verticalmente */
+    #instrument-hand {
+      /* Manteniamo l'aspetto generale dell'area, ma rimuoviamo l'overflow hidden */
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Contenitore interno per le carte in mano: scrollabile verticalmente e disposto in colonna */
+    #instrument-hand-cards {
+      flex: 1;
+      width: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      gap: 5px;
+    }
+    /* Stile per le carte nella mano strumenti: visualizzazione in blocco, senza posizionamento assoluto */
+    #instrument-hand-cards .card {
+      position: static !important;
+      transform: none !important;
+      opacity: 1 !important;
+      transition: none !important;
+      margin: 5px;
+      cursor: pointer;
+      width: auto;
+      height: auto;
+      padding: 10px;
+    }
+    /* Pulsanti di reset */
+    .reset-btn {
+      padding: 8px 16px;
+      margin: 10px;
+      background-color: rgba(255,255,255,0.2);
+      color: #ecf0f1;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    .reset-btn:hover {
+      background-color: rgba(255,255,255,0.4);
+    }
+  </style>
+</head>
+<body>
+  <h1>Mazzo di Carte Multiplayer</h1>
+  
+  <!-- Sezione Mazzo Eventi -->
+  <div class="container">
+    <div id="deck" class="area">
+      <div class="area-title">Mazzo Eventi</div>
+      <div class="deck-info" id="deck-count"></div>
+    </div>
+    <div id="discard" class="area">
+      <div class="area-title">Scarti Eventi</div>
+      <div id="discard-cards" class="cards-container"></div>
+    </div>
+  </div>
+  <!-- Pulsante per resettare gli scarti eventi -->
+  <button id="reset-event-btn" class="reset-btn">Reset Event Discards</button>
+  
+  <!-- Sezione Mazzo Strumenti, Mano e Scarti Strumenti -->
+  <div class="instrument-container">
+    <div id="instrument-deck" class="area">
+      <div class="area-title">Mazzo Strumenti</div>
+      <div class="deck-info" id="instrument-deck-count"></div>
+    </div>
+    <div id="instrument-hand" class="area">
+      <div class="area-title">La Tua Mano</div>
+      <!-- Contenitore interno per le carte in mano -->
+      <div id="instrument-hand-cards" class="cards-container" style="flex-direction: column; overflow-y: auto;"></div>
+    </div>
+    <div id="instrument-discard" class="area">
+      <div class="area-title">Scarti Strumenti</div>
+      <div id="instrument-discard-cards" class="cards-container"></div>
+    </div>
+  </div>
+  <!-- Pulsante per resettare gli scarti strumenti -->
+  <button id="reset-instrument-btn" class="reset-btn">Reset Instrument Discards</button>
+  
+  <!-- Includi la libreria Socket.IO -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    /* --- Funzione per centrare il contenitore degli scarti --- */
+    function centerContainer(container) {
+      container.scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
+    }
+
+    /* --- Sezione Mazzo Eventi --- */
+    socket.on('updateState', data => {
+      updateDeckCount(data.deckCount);
+      renderDiscardPile(data.discardPile);
+    });
+
+    socket.on('cardDrawn', data => {
+      updateDeckCount(data.deckCount);
+      showCardInDeck(data.card);
+      setTimeout(() => {
+        moveCardToDiscard(data.card);
+      }, 2500);
+    });
+
+    socket.on('deckEmpty', () => {
+      alert('Mazzo Eventi esaurito!');
+    });
+
+    document.getElementById('deck').addEventListener('click', () => {
+      socket.emit('drawCard');
+    });
+
+    function updateDeckCount(count) {
+      document.getElementById('deck-count').textContent = `Carte rimanenti: ${count}`;
+    }
+
+    function renderDiscardPile(cards) {
+      const container = document.getElementById('discard-cards');
+      container.innerHTML = '';
+      cards.forEach(card => {
+        const cardEl = createCardElement(card);
+        container.appendChild(cardEl);
+        setTimeout(() => {
+          cardEl.classList.add('show');
+          centerContainer(container);
+        }, 100);
+      });
+    }
+
+    function showCardInDeck(card) {
+      const deckElement = document.getElementById('deck');
+      const cardElement = createCardElement(card);
+      deckElement.appendChild(cardElement);
+      setTimeout(() => {
+        cardElement.classList.add('show');
+      }, 100);
+      cardElement.dataset.inDeck = "true";
+    }
+
+    function moveCardToDiscard(card) {
+      const deckElement = document.getElementById('deck');
+      const cardElements = deckElement.querySelectorAll('.card');
+      cardElements.forEach(cardElement => {
+        if (cardElement.dataset.inDeck === "true") {
+          deckElement.removeChild(cardElement);
+          cardElement.classList.remove('show');
+          const discardContainer = document.getElementById('discard-cards');
+          discardContainer.appendChild(cardElement);
+          setTimeout(() => {
+            cardElement.classList.add('show');
+            centerContainer(discardContainer);
+          }, 100);
+          delete cardElement.dataset.inDeck;
+        }
+      });
+    }
+
+    /* --- Sezione Mazzo Strumenti --- */
+    socket.on('updateInstrumentDeckCount', data => {
+      updateInstrumentDeckCount(data.deckCount);
+    });
+
+    function updateInstrumentDeckCount(count) {
+      document.getElementById('instrument-deck-count').textContent = `Carte rimanenti: ${count}`;
+    }
+
+    socket.on('instrumentCardDrawn', data => {
+      updateInstrumentDeckCount(data.deckCount);
+      renderInstrumentHand(data.hand);
+    });
+
+    socket.on('updateInstrumentHand', data => {
+      renderInstrumentHand(data.hand);
+    });
+
+    socket.on('instrumentCardUsed', data => {
+      addInstrumentDiscardCard(data.card);
+    });
+
+    document.getElementById('instrument-deck').addEventListener('click', () => {
+      socket.emit('drawInstrumentCard');
+    });
+
+    function renderInstrumentHand(hand) {
+      const container = document.getElementById('instrument-hand-cards');
+      container.innerHTML = '';
+      hand.forEach((card, index) => {
+        const cardEl = createInstrumentCardElement(card, index);
+        container.appendChild(cardEl);
+      });
+    }
+
+    function createInstrumentCardElement(card, index) {
+      const cardEl = document.createElement('div');
+      cardEl.classList.add('card');
+      cardEl.innerHTML = `<div>${card.text}</div>`;
+      cardEl.dataset.index = index;
+      cardEl.addEventListener('click', () => {
+        socket.emit('useInstrumentCard', { index: index });
+      });
+      return cardEl;
+    }
+
+    function addInstrumentDiscardCard(card) {
+      const container = document.getElementById('instrument-discard-cards');
+      const cardEl = createCardElement(card);
+      container.appendChild(cardEl);
+      setTimeout(() => {
+        cardEl.classList.add('show');
+        centerContainer(container);
+      }, 100);
+    }
+
+    function createCardElement(card) {
+      const cardEl = document.createElement('div');
+      cardEl.classList.add('card');
+      cardEl.innerHTML = `<div>${card.text}</div>`;
+      return cardEl;
+    }
+
+    /* --- Gestione dei pulsanti Reset --- */
+    document.getElementById('reset-event-btn').addEventListener('click', () => {
+      socket.emit('resetEventDiscard');
+    });
+
+    document.getElementById('reset-instrument-btn').addEventListener('click', () => {
+      socket.emit('resetInstrumentDiscard');
+    });
+  </script>
+</body>
+</html>
