@@ -77,6 +77,25 @@ instrumentDeck = shuffle(instrumentDeck);
 let instrumentHands = {};  
 let instrumentDiscardPile = [];
 
+/* ===== Contatori Globali ===== */
+// Definiamo i range per ciascun contatore e creiamo, per ognuno, l'array dei numeri disponibili
+const counterRanges = {
+  counter1: { min: 1, max: 53 },
+  counter2: { min: 1, max: 39 },
+  counter3: { min: 1, max: 38 },
+  counter4: { min: 1, max: 29 },
+  counter5: { min: 121, max: 150 }
+};
+
+const availableNumbers = {};
+for (const counterId in counterRanges) {
+  const { min, max } = counterRanges[counterId];
+  availableNumbers[counterId] = [];
+  for (let i = min; i <= max; i++) {
+    availableNumbers[counterId].push(i);
+  }
+}
+
 io.on('connection', (socket) => {
   console.log(`Utente connesso: ${socket.id}`);
   
@@ -90,6 +109,15 @@ io.on('connection', (socket) => {
   socket.emit('updateInstrumentHand', { hand: instrumentHands[socket.id] });
   // Invia lo stato iniziale degli scarti strumenti
   socket.emit('updateInstrumentDiscard', { discardPile: instrumentDiscardPile });
+  
+  // Invia lo stato iniziale dei contatori (per ciascun contatore, il numero di elementi rimanenti)
+  socket.emit('counterState', { counters: {
+    counter1: availableNumbers.counter1.length,
+    counter2: availableNumbers.counter2.length,
+    counter3: availableNumbers.counter3.length,
+    counter4: availableNumbers.counter4.length,
+    counter5: availableNumbers.counter5.length
+  }});
   
   /* ----- Gestione Mazzo Eventi ----- */
   socket.on('drawCard', () => {
@@ -141,6 +169,23 @@ io.on('connection', (socket) => {
     instrumentDiscardPile = [];
     io.emit('updateInstrumentDeckCount', { deckCount: instrumentDeck.length });
     io.emit('updateInstrumentDiscard', { discardPile: instrumentDiscardPile });
+  });
+
+  /* ----- Gestione Contatori ----- */
+  // Quando un client richiede di estrarre un numero per un determinato contatore
+  socket.on('drawNumber', (data) => {
+    const counterId = data.counterId;
+    // Se il contatore esiste ed è disponibile
+    if (!availableNumbers[counterId] || availableNumbers[counterId].length === 0) {
+      return;
+    }
+    const arr = availableNumbers[counterId];
+    const randomIndex = Math.floor(Math.random() * arr.length);
+    const drawnNumber = arr[randomIndex];
+    // Rimuoviamo il numero estratto dal pool
+    arr.splice(randomIndex, 1);
+    // Comunichiamo a tutti il numero estratto, l'id del contatore e quanti ne rimangono
+    io.emit('numberDrawn', { counterId, number: drawnNumber, remaining: arr.length });
   });
   
   socket.on('disconnect', () => {
